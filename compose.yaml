@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./dist:/chipkit/dist
+      - ./tmp:/chipkit/tmp
     environment:
       - ANT_CACHE=/chipkit/tmp
 
@@ -13,7 +14,9 @@ services:
       context: ./docker/arduino-cli
       dockerfile: Dockerfile
     volumes:
-      - ./sketches:/workspace
+      - ./:/workspace
       - ./.arduino15:/root/.arduino15
+      - ./dist/linux32/chipkit-core/pic32:/root/.arduino15/packages/chipKIT/hardware/pic32/2.1.0
+      - ./dist/linux32/chipkit-core/pic32/compiler/pic32-tools:/root/.arduino15/packages/chipKIT/tools/pic32-tools/1.43
     depends_on:
       - core-builder
