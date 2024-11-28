@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Stop any running containers
-docker-compose down
+docker compose down
 
 # Remove build directories
 rm -rf dist/

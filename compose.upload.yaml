@@ -4,5 +4,8 @@ services:
       file: compose.yaml
       service: arduino-cli
     devices:
-      - /dev/ttyUSB0:/dev/ttyUSB0
+      # Map only the ACM port since that's what we're using
       - /dev/ttyACM0:/dev/ttyACM0
+    # Add group to access USB devices
+    group_add:
+      - dialout

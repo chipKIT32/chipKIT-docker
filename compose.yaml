@@ -19,7 +19,9 @@ services:
       - ./:/workspace
       - ./arduino_data:/home/arduino/arduino_data
       - ./dist/linux32/chipkit-core/pic32:/home/arduino/arduino_data/packages/chipKIT/hardware/pic32/2.1.0
+      # Map the entire pic32-tools directory structure
       - ./dist/linux32/chipkit-core/pic32/compiler/pic32-tools:/home/arduino/arduino_data/packages/chipKIT/tools/pic32-tools/1.43
+      - ./dist/linux32/chipkit-core/pic32/tools/pic32prog:/home/arduino/arduino_data/packages/chipKIT/tools/pic32prog/1.0.0
       - ./tmp:/workspace/tmp
     environment:
       - ARDUINO_DIRECTORIES_DATA=/home/arduino/arduino_data

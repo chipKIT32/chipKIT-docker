@@ -20,4 +20,8 @@ cp "$PLATFORM_FILE" "${PLATFORM_FILE}.backup"
 sed -i 's|{runtime.tools.pic32-tools.path}/bin/|{runtime.tools.pic32-tools.path}/|g' "$PLATFORM_FILE"
 sed -i 's|{runtime.hardware.path}/tools/bin|{runtime.tools.pic32-tools.path}|g' "$PLATFORM_FILE"
 
+# Update the upload tool path
+sed -i 's|tools.pic32prog.cmd={runtime.platform.path}/tools/pic32prog|tools.pic32prog.cmd={runtime.tools.pic32prog.path}/pic32prog|g' "$PLATFORM_FILE"
+sed -i 's|tools.pic32prog.path={runtime.platform.path}/tools|tools.pic32prog.path={runtime.tools.pic32prog.path}|g' "$PLATFORM_FILE"
+
 echo "Platform configuration updated."
