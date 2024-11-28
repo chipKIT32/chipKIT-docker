@@ -16,12 +16,32 @@ PLATFORM_FILE="dist/linux32/chipkit-core/pic32/platform.txt"
 # Create a backup
 cp "$PLATFORM_FILE" "${PLATFORM_FILE}.backup"
 
-# Update the compiler paths
-sed -i 's|{runtime.tools.pic32-tools.path}/bin/|{runtime.tools.pic32-tools.path}/|g' "$PLATFORM_FILE"
-sed -i 's|{runtime.hardware.path}/tools/bin|{runtime.tools.pic32-tools.path}|g' "$PLATFORM_FILE"
+# Update tool paths - note we don't modify compiler.path as it's already correct
+sed -i 's|{runtime.hardware.path}/tools/bin/pic32prog|{runtime.tools.pic32prog.path}/pic32prog|g' "$PLATFORM_FILE"
 
-# Update the upload tool path
-sed -i 's|tools.pic32prog.cmd={runtime.platform.path}/tools/pic32prog|tools.pic32prog.cmd={runtime.tools.pic32prog.path}/pic32prog|g' "$PLATFORM_FILE"
-sed -i 's|tools.pic32prog.path={runtime.platform.path}/tools|tools.pic32prog.path={runtime.tools.pic32prog.path}|g' "$PLATFORM_FILE"
+# Ensure the arduino_data directory structure exists
+mkdir -p arduino_data/packages/chipKIT/tools/pic32-tools/1.43
+mkdir -p arduino_data/packages/chipKIT/tools/pic32prog/1.0.0
+
+# Copy necessary files
+echo "Setting up compiler tools..."
+cp -r dist/linux32/chipkit-core/pic32/compiler/pic32-tools/* \
+   arduino_data/packages/chipKIT/tools/pic32-tools/1.43/
+
+echo "Setting up pic32prog..."
+cp dist/linux32/chipkit-core/pic32/tools/bin/pic32prog \
+   arduino_data/packages/chipKIT/tools/pic32prog/1.0.0/
+
+# Make executables actually executable
+find arduino_data/packages/chipKIT/tools/pic32-tools/1.43/bin -type f -exec chmod +x {} \;
+chmod +x arduino_data/packages/chipKIT/tools/pic32prog/1.0.0/pic32prog
 
 echo "Platform configuration updated."
+echo "Compiler tools and pic32prog installed to correct locations."
+
+# Display final paths for verification
+echo -e "\nVerifying setup..."
+echo "Compiler path:"
+ls -l arduino_data/packages/chipKIT/tools/pic32-tools/1.43/bin/pic32-g++
+echo "Pic32prog path:"
+ls -l arduino_data/packages/chipKIT/tools/pic32prog/1.0.0/pic32prog

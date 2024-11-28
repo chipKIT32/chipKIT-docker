@@ -12,16 +12,14 @@ services:
   arduino-cli:
     build:
       context: ./docker/arduino-cli
-      args:
-        USER_ID: ${UID:-1000}
-        GROUP_ID: ${GID:-1000}
     volumes:
       - ./:/workspace
       - ./arduino_data:/home/arduino/arduino_data
       - ./dist/linux32/chipkit-core/pic32:/home/arduino/arduino_data/packages/chipKIT/hardware/pic32/2.1.0
-      # Map the entire pic32-tools directory structure
+      # Mount just the bin directory with compiler tools
       - ./dist/linux32/chipkit-core/pic32/compiler/pic32-tools:/home/arduino/arduino_data/packages/chipKIT/tools/pic32-tools/1.43
-      - ./dist/linux32/chipkit-core/pic32/tools/pic32prog:/home/arduino/arduino_data/packages/chipKIT/tools/pic32prog/1.0.0
+      # Mount pic32prog
+      - ./dist/linux32/chipkit-core/pic32/tools/bin/pic32prog:/home/arduino/arduino_data/packages/chipKIT/tools/pic32prog/1.0.0/pic32prog
       - ./tmp:/workspace/tmp
     environment:
       - ARDUINO_DIRECTORIES_DATA=/home/arduino/arduino_data

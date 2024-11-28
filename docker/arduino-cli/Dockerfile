@@ -1,10 +1,5 @@
+# docker/arduino-cli/Dockerfile
 FROM ubuntu:22.04
-
-# Create a non-root user with same UID as host user to fix permission issues
-ARG USER_ID=1000
-ARG GROUP_ID=1000
-RUN groupadd -g ${GROUP_ID} arduino && \
-    useradd -u ${USER_ID} -g arduino -m arduino
 
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
@@ -17,23 +12,15 @@ RUN dpkg --add-architecture i386 && \
 # Install Arduino CLI
 RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
 
-# Create Arduino directories with correct permissions
-RUN mkdir -p /home/arduino/arduino_data/packages/chipKIT/hardware/pic32/2.1.0 && \
-    chown -R arduino:arduino /home/arduino/arduino_data
-
-# Create config directory
-RUN mkdir -p /etc/arduino-cli && \
-    chown -R arduino:arduino /etc/arduino-cli
+# Create Arduino directories
+RUN mkdir -p /home/arduino/arduino_data/packages/chipKIT/hardware/pic32/2.1.0 \
+    /home/arduino/arduino_data/packages/chipKIT/tools/pic32-tools/1.43 \
+    /home/arduino/arduino_data/packages/builtin/tools \
+    /etc/arduino-cli
 
 # Copy config file
-COPY --chown=arduino:arduino arduino-cli.yaml /etc/arduino-cli/
-
-# Switch to arduino user
-USER arduino
-
-# Initialize Arduino CLI and install chipKIT core
-RUN arduino-cli core update-index && \
-    arduino-cli core install chipKIT:pic32
+COPY arduino-cli.yaml /etc/arduino-cli/
 
 WORKDIR /workspace
-ENTRYPOINT ["arduino-cli", "--config-file", "/etc/arduino-cli/arduino-cli.yaml"]
+
+ENTRYPOINT ["arduino-cli"]
