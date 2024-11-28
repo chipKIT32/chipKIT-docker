@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  core-builder:
+    build:
+      context: ./docker/core-builder
+      dockerfile: Dockerfile
+    volumes:
+      - ./dist:/chipkit/dist
+    environment:
+      - ANT_CACHE=/chipkit/tmp
+
+  arduino-cli:
+    build:
+      context: ./docker/arduino-cli
+      dockerfile: Dockerfile
+    volumes:
+      - ./sketches:/workspace
+      - ./.arduino15:/root/.arduino15
+    depends_on:
+      - core-builder
