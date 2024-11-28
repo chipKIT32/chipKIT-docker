@@ -12,4 +12,4 @@ SKETCH_PATH="$1"
 cd "$(dirname "$0")/.."
 
 # Run Arduino CLI compilation
-docker-compose run --rm arduino-cli compile -b chipKIT:pic32:your_board "$SKETCH_PATH"
+docker compose run --rm arduino-cli compile -b chipKIT:pic32:your_board "$SKETCH_PATH"

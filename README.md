@@ -5,14 +5,13 @@ This project provides a Docker-based development environment for ChipKIT, enabli
 ## Prerequisites
 
 - Docker
-- Docker Compose
 - Git
 
 ## Setup
 
 1. Build the Docker images:
    ```bash
-   docker-compose build
+   docker compose build
    ```
 
 2. Build the ChipKIT core:

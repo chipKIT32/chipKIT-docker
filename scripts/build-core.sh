@@ -5,6 +5,6 @@ set -e
 cd "$(dirname "$0")/.."
 
 # Build the ChipKIT core
-docker-compose run --rm core-builder
+docker compose run --rm core-builder
 
 echo "ChipKIT core built successfully!"
