@@ -12,11 +12,18 @@ services:
   arduino-cli:
     build:
       context: ./docker/arduino-cli
-      dockerfile: Dockerfile
+      args:
+        USER_ID: ${UID:-1000}
+        GROUP_ID: ${GID:-1000}
     volumes:
       - ./:/workspace
-      - ./.arduino15:/root/.arduino15
-      - ./dist/linux32/chipkit-core/pic32:/root/.arduino15/packages/chipKIT/hardware/pic32/2.1.0
-      - ./dist/linux32/chipkit-core/pic32/compiler/pic32-tools:/root/.arduino15/packages/chipKIT/tools/pic32-tools/1.43
+      - ./arduino_data:/home/arduino/arduino_data
+      - ./dist/linux32/chipkit-core/pic32:/home/arduino/arduino_data/packages/chipKIT/hardware/pic32/2.1.0
+      - ./dist/linux32/chipkit-core/pic32/compiler/pic32-tools:/home/arduino/arduino_data/packages/chipKIT/tools/pic32-tools/1.43
+      - ./tmp:/workspace/tmp
+    environment:
+      - ARDUINO_DIRECTORIES_DATA=/home/arduino/arduino_data
+      - ARDUINO_DIRECTORIES_DOWNLOADS=/home/arduino/arduino_data/staging
+      - ARDUINO_DIRECTORIES_USER=/home/arduino/Arduino
     depends_on:
       - core-builder

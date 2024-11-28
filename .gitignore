@@ -1,6 +1,17 @@
+# Build artifacts
 dist/
+arduino_data/
 .arduino15/
 tmp/
+
+# Build outputs
 *.log
 *.tar.gz
 *.zip
+*.hex
+*.elf
+*.bin
+
+# OS specific
+.DS_Store
+.directory

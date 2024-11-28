@@ -3,9 +3,9 @@ board_manager:
     - https://github.com/chipKIT32/chipKIT-core/raw/master/package_chipkit_index.json
 
 directories:
-  data: /root/.arduino15
-  downloads: /root/.arduino15/staging
-  user: /root/Arduino
+  data: /home/arduino/arduino_data
+  downloads: /home/arduino/arduino_data/staging
+  user: /home/arduino/Arduino
 
 library:
   enable_unsafe_install: true

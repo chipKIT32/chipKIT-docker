@@ -1,0 +1,8 @@
+services:
+  arduino-cli:
+    extends:
+      file: compose.yaml
+      service: arduino-cli
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/ttyACM0:/dev/ttyACM0
