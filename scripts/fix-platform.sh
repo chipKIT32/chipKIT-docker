@@ -1,8 +1,9 @@
 #!/bin/bash
 set -e
 
-# Ensure we're in the project root
+# Ensure we're in the project root and get absolute path
 cd "$(dirname "$0")/.."
+PROJECT_ROOT=$(pwd)
 
 # Wait for the core build to complete if it hasn't already
 if [ ! -d "dist/linux32/chipkit-core/pic32" ]; then
@@ -10,38 +11,70 @@ if [ ! -d "dist/linux32/chipkit-core/pic32" ]; then
     ./scripts/build-core.sh
 fi
 
-# Update the platform.txt file to use the correct paths
-PLATFORM_FILE="dist/linux32/chipkit-core/pic32/platform.txt"
+# Create a temporary script to run inside the container
+cat > tmp/fix-platform.sh <<'EOF'
+#!/bin/bash
+set -e
 
-# Create a backup
+echo "Starting platform configuration..."
+
+# Core platform.txt setup
+PLATFORM_FILE="/chipkit/dist/linux32/chipkit-core/pic32/platform.txt"
 cp "$PLATFORM_FILE" "${PLATFORM_FILE}.backup"
+sed -i 's|{runtime.tools.pic32-tools.path}/bin/|{runtime.tools.pic32-tools.path}/bin/|g' "$PLATFORM_FILE"
+sed -i 's|{runtime.hardware.path}/tools/bin|{runtime.tools.pic32-tools.path}/bin|g' "$PLATFORM_FILE"
 
-# Update tool paths - note we don't modify compiler.path as it's already correct
-sed -i 's|{runtime.hardware.path}/tools/bin/pic32prog|{runtime.tools.pic32prog.path}/pic32prog|g' "$PLATFORM_FILE"
+# Setup directories in Arduino data
+mkdir -p /data/packages/chipKIT/tools/pic32-tools/1.43/bin
+mkdir -p /data/packages/chipKIT/tools/pic32-tools/1.43/lib
+mkdir -p /data/packages/chipKIT/tools/pic32-tools/1.43/device_files
+mkdir -p /data/packages/chipKIT/tools/pic32prog/1.0.0
 
-# Ensure the arduino_data directory structure exists
-mkdir -p arduino_data/packages/chipKIT/tools/pic32-tools/1.43
-mkdir -p arduino_data/packages/chipKIT/tools/pic32prog/1.0.0
+# First, organize files in the source directory
+TOOLS_DIR="/chipkit/dist/linux32/chipkit-core/pic32/compiler/pic32-tools"
+mkdir -p "${TOOLS_DIR}/bin"
 
-# Copy necessary files
-echo "Setting up compiler tools..."
-cp -r dist/linux32/chipkit-core/pic32/compiler/pic32-tools/* \
-   arduino_data/packages/chipKIT/tools/pic32-tools/1.43/
+# Move all executables to bin directory
+cd "${TOOLS_DIR}"
+for file in pic32-*; do
+    if [ -f "$file" ] && [ -x "$file" ]; then
+        echo "Moving $file to bin/"
+        mv "$file" "bin/$file"
+    fi
+done
+cd -
 
-echo "Setting up pic32prog..."
-cp dist/linux32/chipkit-core/pic32/tools/bin/pic32prog \
-   arduino_data/packages/chipKIT/tools/pic32prog/1.0.0/
+# Copy organized files to Arduino data
+echo "Copying compiler tools..."
+cp -r "${TOOLS_DIR}/bin"/* /data/packages/chipKIT/tools/pic32-tools/1.43/bin/
+cp -r "${TOOLS_DIR}/lib" /data/packages/chipKIT/tools/pic32-tools/1.43/
+cp -r "${TOOLS_DIR}/device_files" /data/packages/chipKIT/tools/pic32-tools/1.43/
 
-# Make executables actually executable
-find arduino_data/packages/chipKIT/tools/pic32-tools/1.43/bin -type f -exec chmod +x {} \;
-chmod +x arduino_data/packages/chipKIT/tools/pic32prog/1.0.0/pic32prog
+# Copy pic32prog if it exists
+if [ -f "/chipkit/dist/linux32/chipkit-core/pic32/tools/bin/pic32prog" ]; then
+    echo "Setting up pic32prog..."
+    cp "/chipkit/dist/linux32/chipkit-core/pic32/tools/bin/pic32prog" \
+        /data/packages/chipKIT/tools/pic32prog/1.0.0/
+    chmod +x /data/packages/chipKIT/tools/pic32prog/1.0.0/pic32prog
+else
+    echo "Warning: pic32prog not found in expected location"
+fi
 
-echo "Platform configuration updated."
-echo "Compiler tools and pic32prog installed to correct locations."
+# Make all executables executable
+echo "Setting executable permissions..."
+find /data/packages/chipKIT/tools/pic32-tools/1.43/bin -type f -exec chmod +x {} \;
 
-# Display final paths for verification
-echo -e "\nVerifying setup..."
-echo "Compiler path:"
-ls -l arduino_data/packages/chipKIT/tools/pic32-tools/1.43/bin/pic32-g++
-echo "Pic32prog path:"
-ls -l arduino_data/packages/chipKIT/tools/pic32prog/1.0.0/pic32prog
+echo "Platform configuration completed."
+EOF
+
+# Make the temporary script executable
+chmod +x tmp/fix-platform.sh
+
+# Run the fix inside the core-builder container with access to arduino data
+echo "Running platform fixes in container..."
+docker compose run --rm \
+    -v "${PROJECT_ROOT}/arduino_data:/data" \
+    --entrypoint=/bin/bash \
+    core-builder /chipkit/tmp/fix-platform.sh
+
+echo "Platform configuration completed successfully."

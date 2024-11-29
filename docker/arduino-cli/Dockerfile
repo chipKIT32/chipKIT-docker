@@ -1,4 +1,3 @@
-# docker/arduino-cli/Dockerfile
 FROM ubuntu:22.04
 
 RUN dpkg --add-architecture i386 && \
@@ -12,15 +11,20 @@ RUN dpkg --add-architecture i386 && \
 # Install Arduino CLI
 RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
 
-# Create Arduino directories
-RUN mkdir -p /home/arduino/arduino_data/packages/chipKIT/hardware/pic32/2.1.0 \
-    /home/arduino/arduino_data/packages/chipKIT/tools/pic32-tools/1.43 \
-    /home/arduino/arduino_data/packages/builtin/tools \
-    /etc/arduino-cli
-
-# Copy config file
-COPY arduino-cli.yaml /etc/arduino-cli/
+# Create required directories
+RUN mkdir -p /data/user/libraries \
+    /data/packages \
+    /data/staging \
+    /workspace/tmp \
+    /home/arduino/.cache/arduino-cli \
+    && chmod -R 777 /data /workspace /home/arduino
 
 WORKDIR /workspace
 
-ENTRYPOINT ["arduino-cli"]
+ENV HOME=/home/arduino \
+    XDG_CACHE_HOME=/home/arduino/.cache \
+    ARDUINO_CACHE_DIR=/home/arduino/.cache/arduino-cli
+
+COPY arduino-cli.yaml /etc/arduino-cli/
+
+ENTRYPOINT ["arduino-cli", "--config-file", "/etc/arduino-cli/arduino-cli.yaml"]

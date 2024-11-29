@@ -1,5 +1,7 @@
-Listing all available chipKIT boards:
-Board Name                       FQBN
+# Listing all available chipKIT boards:
+
+## Board Name                       FQBN
+
 CUI32stem                        chipKIT:pic32:CUI32stem
 DataStation Mini                 chipKIT:pic32:dsmini
 Fubarino Mini                    chipKIT:pic32:fubarino_mini
