@@ -3,35 +3,32 @@ services:
     build:
       context: ./docker/core-builder
       dockerfile: Dockerfile
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ./dist:/chipkit/dist
       - ./tmp:/chipkit/tmp
     environment:
       - ANT_CACHE=/chipkit/tmp
-      - HOME=/tmp/home
-    command: >
-      bash -c '
-        mkdir -p /tmp/home &&
-        git config --global --add safe.directory /chipkit &&
-        ant linux32-build
-      '
+      - HOME=/tmp
+    command: bash -c "cd /chipkit && git config --global --add safe.directory '*' && ant linux32-build"
 
   arduino-cli:
     build:
       context: ./docker/arduino-cli
       dockerfile: Dockerfile
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ./:/workspace
       - ./arduino_data:/data
       - ./dist/linux32/chipkit-core/pic32:/data/packages/chipKIT/hardware/pic32/2.1.0
-      # Fix path to compiler tools, ensuring binary files are in bin directory
       - ./dist/linux32/chipkit-core/pic32/compiler/pic32-tools:/data/packages/chipKIT/tools/pic32-tools/1.43
+      # Map pic32prog to both locations to ensure it's available where needed
+      - ./dist/linux32/chipkit-core/pic32/tools/bin/pic32prog:/data/packages/chipKIT/hardware/pic32/2.1.0/tools/bin/pic32prog
       - ./dist/linux32/chipkit-core/pic32/tools/bin/pic32prog:/data/packages/chipKIT/tools/pic32prog/1.0.0/pic32prog
       - ./tmp:/workspace/tmp
     environment:
       - ARDUINO_DIRECTORIES_DATA=/data
       - ARDUINO_DIRECTORIES_DOWNLOADS=/data/staging
       - ARDUINO_DIRECTORIES_USER=/data/user
-      - HOME=/data/user
     depends_on:
       - core-builder

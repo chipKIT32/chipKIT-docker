@@ -6,20 +6,6 @@ PORT=""
 BOARD=${BOARD:-"chipKIT:pic32:chipkit_DP32"}
 BUILD_PATH=""
 
-# Function to check upload tool
-check_upload_tool() {
-    echo "Checking upload tool configuration..."
-    docker compose run --rm --entrypoint="" arduino-cli /bin/sh -c "\
-        echo 'Looking for pic32prog in:'; \
-        ls -la /home/arduino/arduino_data/packages/chipKIT/tools/pic32prog/1.0.0/ 2>/dev/null || echo 'pic32prog directory not found'; \
-        echo ''; \
-        echo 'Core files location:'; \
-        ls -la /home/arduino/arduino_data/packages/chipKIT/hardware/pic32/2.1.0/ || echo 'Core directory not found'; \
-        echo ''; \
-        echo 'Tools directory:'; \
-        ls -la /home/arduino/arduino_data/packages/chipKIT/tools/ || echo 'Tools directory not found'"
-}
-
 # Function to display usage
 usage() {
     echo "Usage: $0 [options] <sketch>"
@@ -29,10 +15,6 @@ usage() {
     echo ""
     echo "Environment variables:"
     echo "  BOARD               Set the board FQBN (currently: $BOARD)"
-    echo ""
-    echo "Example:"
-    echo "  $0 -p /dev/ttyACM0 ./sketches/blink/blink.ino"
-    echo "  BOARD=\"chipKIT:pic32:fubarino_mini\" $0 -p /dev/ttyACM0 ./sketches/blink/blink.ino"
 }
 
 # Parse command line arguments
@@ -60,6 +42,13 @@ if [ -z "$SKETCH" ]; then
     exit 1
 fi
 
+# Check paths before proceeding
+echo "Checking required paths and tools..."
+if ! ./scripts/check-paths.sh; then
+    echo "Error: Required paths are missing. Please fix the issues above before uploading."
+    exit 1
+fi
+
 if [ -z "$PORT" ]; then
     # Try to auto-detect port
     if [ -e "/dev/ttyACM0" ]; then
@@ -74,64 +63,73 @@ if [ -z "$PORT" ]; then
     fi
 fi
 
-# Verify port exists
-if [ ! -e "$PORT" ]; then
-    echo "Error: Port $PORT does not exist"
-    echo "Available ports:"
-    ls -1 /dev/ttyACM* /dev/ttyUSB* 2>/dev/null || echo "No ACM or USB ports found"
-    exit 1
-fi
-
 echo "Using board: $BOARD"
 echo "Using port: $PORT"
 
-# Create build directory with proper permissions
+# Create build directory
 SKETCH_NAME=$(basename "${SKETCH%.*}")
-BUILD_PATH="/workspace/tmp/build/${SKETCH_NAME}"
+BUILD_PATH="tmp/build/${SKETCH_NAME}"
+mkdir -p "$BUILD_PATH"
 
-# Ensure tmp directory exists with proper permissions
-echo "Setting up build environment..."
-mkdir -p tmp
-docker compose run --rm --entrypoint="" arduino-cli mkdir -p /workspace/tmp/build/${SKETCH_NAME}
+# Check if sketch is already built
+if [ ! -f "$BUILD_PATH/${SKETCH_NAME}.ino.hex" ]; then
+    echo "Sketch not built yet. Building now..."
+    # Build the sketch
+    docker compose run --rm arduino-cli compile \
+        --fqbn "$BOARD" \
+        --build-path "$BUILD_PATH" \
+        "$SKETCH"
 
-# Build the sketch with specified build path
-echo "Building sketch..."
-docker compose run --rm arduino-cli compile \
-    --fqbn "$BOARD" \
-    --build-path "$BUILD_PATH" \
-    --build-cache-path "/workspace/tmp/cache" \
-    "$SKETCH"
-
-if [ $? -ne 0 ]; then
-    echo "Build failed! Aborting upload."
-    exit 1
+    if [ $? -ne 0 ]; then
+        echo "Build failed! Aborting upload."
+        exit 1
+    fi
+else
+    echo "Using existing build at $BUILD_PATH"
 fi
-
-check_upload_tool
-
 
 echo "Uploading sketch..."
 
-# Create a temporary docker-compose override for the specific port
+# Create a temporary docker-compose override for upload
 cat > docker-compose.upload.override.yaml <<EOF
 services:
   arduino-cli:
+    environment:
+      - ARDUINO_UPLOAD_TOOL_PATH=/data/packages/chipKIT/hardware/pic32/2.1.0/tools/bin/pic32prog
     devices:
       - $PORT:$PORT
     group_add:
       - dialout
 EOF
 
+# Echo the upload command that will be executed
+echo "Executing upload command:"
+echo "docker compose -f compose.yaml -f docker-compose.upload.override.yaml run --rm arduino-cli upload -b \"$BOARD\" -p \"$PORT\" --input-dir \"$BUILD_PATH\" \"$SKETCH\""
+
 # Use the override file for uploading
-docker compose -f compose.yaml -f docker-compose.upload.override.yaml run --rm arduino-cli upload \
-    --fqbn "$BOARD" \
-    --port "$PORT" \
+docker compose -f compose.yaml -f docker-compose.upload.override.yaml run --rm \
+    arduino-cli upload \
+    -b "$BOARD" \
+    -p "$PORT" \
     --input-dir "$BUILD_PATH" \
-    "$SKETCH"
+    "$SKETCH" --verbose
 
 RET=$?
 
 # Clean up the temporary override file
 rm docker-compose.upload.override.yaml
 
-exit $RET
+if [ $RET -eq 0 ]; then
+    echo "Upload successful!"
+else
+    echo "Upload failed with error code $RET"
+    echo "Debugging information:"
+    echo "1. Checking pic32prog path:"
+    docker compose run --rm --entrypoint=/bin/sh arduino-cli -c "
+    echo 'Actual location:';
+    ls -l /data/packages/chipKIT/hardware/pic32/2.1.0/tools/bin/pic32prog 2>/dev/null || echo 'Not found';
+    echo 'Looking for tool in:';
+    find /data -name pic32prog -type f
+    "
+    exit $RET
+fi

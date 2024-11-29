@@ -4,56 +4,17 @@ set -e
 # Ensure we're in the project root
 cd "$(dirname "$0")/.."
 
-# Get current user and group
-USER_ID=$(id -u)
-GROUP_ID=$(id -g)
+echo "Setting up directories..."
 
-echo "Fixing permissions for user $USER_ID:$GROUP_ID"
-
-# Create necessary directories if they don't exist
-mkdir -p arduino_data/packages/chipKIT/tools/pic32-tools/1.43/bin
-mkdir -p arduino_data/packages/chipKIT/tools/pic32prog/1.0.0/bin
-mkdir -p arduino_data/user/libraries
+# Create all necessary directories
+mkdir -p arduino_data/packages/builtin/{tools,hardware}
+mkdir -p arduino_data/packages/chipKIT/tools/pic32-tools/1.43
+mkdir -p arduino_data/packages/chipKIT/tools/pic32prog/1.0.0
+mkdir -p arduino_data/packages/chipKIT/hardware/pic32/2.1.0
 mkdir -p arduino_data/staging
-mkdir -p dist
+mkdir -p arduino_data/user/libraries
 mkdir -p tmp
+mkdir -p dist
 
-# Fix ownership of all directories
-sudo chown -R $USER_ID:$GROUP_ID \
-    arduino_data \
-    dist \
-    tmp
-
-# Fix directory permissions
-find arduino_data -type d -exec chmod 755 {} \;
-find dist -type d -exec chmod 755 {} \;
-find tmp -type d -exec chmod 755 {} \;
-
-# Fix file permissions
-find arduino_data -type f -exec chmod 644 {} \;
-find dist -type f -exec chmod 644 {} \;
-find tmp -type f -exec chmod 644 {} \;
-
-# Make specific files executable
-if [ -d "arduino_data/packages/chipKIT/tools/pic32-tools/1.43/bin" ]; then
-    chmod +x arduino_data/packages/chipKIT/tools/pic32-tools/1.43/bin/*
-fi
-
-if [ -d "arduino_data/packages/chipKIT/tools/pic32prog/1.0.0/bin" ]; then
-    chmod +x arduino_data/packages/chipKIT/tools/pic32prog/1.0.0/bin/*
-fi
-
-echo "Permissions fixed!"
-echo "Verifying key executables..."
-
-# Verify key executables
-for TOOL in \
-    "arduino_data/packages/chipKIT/tools/pic32-tools/1.43/bin/pic32-g++" \
-    "arduino_data/packages/chipKIT/tools/pic32prog/1.0.0/bin/pic32prog"
-do
-    if [ -f "$TOOL" ]; then
-        ls -l "$TOOL"
-    else
-        echo "Warning: $TOOL not found"
-    fi
-done
+echo "Directory structure created!"
+echo "You may now run: ./scripts/build-sketch.sh path/to/sketch.ino"
